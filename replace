@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+# The MIT License (MIT)
+#
+# Copyright (c) 2015 Gil Gonçalves
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+
+set -f
+
+SEARCH_STRING=$1
+REPLACE_STRING=$2
+
+if [ -z $3 ]; then
+    FILES_WILDCARD='*'
+else
+    FILES_WILDCARD="${3}"
+fi
+
+FILES_LIST=$(find . -writable -type f -iname "${FILES_WILDCARD}")
+REPLACE_STRING=$(echo $REPLACE_STRING | sed 's/+/\\+/g')
+
+function show_preview {
+    local reset_text_attributes=$(tput sgr0)
+
+    PREVIEW_OUTPUT=$(
+        echo -e $FILES_LIST | \
+            xargs -l grep "$SEARCH_STRING" | \
+            sed "s/$SEARCH_STRING/\\\e[91m$SEARCH_STRING$reset_text_attributes\\\e[92m$REPLACE_STRING$reset_text_attributes/g"
+    )
+    echo -e "$PREVIEW_OUTPUT"
+}
+
+echo "This is going to be replaced:"
+show_preview
+echo "Are you sure you want to do that? [y/N]"
+read CONFIRM
+
+if [ $CONFIRM == 'y' ]; then
+    SED_REGEX="s/$SEARCH_STRING/$REPLACE_STRING/g"
+    echo -e $FILES_LIST | xargs -l sed -i "$SED_REGEX"
+    echo "DONE"
+fi
