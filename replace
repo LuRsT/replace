@@ -22,39 +22,53 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+set -o noglob
+set -o nounset
+set -o errexit
+set -o pipefail
 
-set -f
 
 SEARCH_STRING=$1
 REPLACE_STRING=$2
 
-if [ -z $3 ]; then
+NUM_ARGUMENTS=${#@}
+if (( $NUM_ARGUMENTS <= 2 )); then
     FILES_WILDCARD='*'
 else
     FILES_WILDCARD="${3}"
 fi
 
-FILES_LIST=$(find . -writable -type f -iname "${FILES_WILDCARD}")
-REPLACE_STRING=$(echo $REPLACE_STRING | sed 's/+/\\+/g')
+function MAIN {
+    local files_list=$(find . -writable -type f -iname "${FILES_WILDCARD}")
+    local replace_string=$(echo $REPLACE_STRING | sed 's/+/\\+/g')
 
-function show_preview {
     local reset_text_attributes=$(tput sgr0)
 
-    PREVIEW_OUTPUT=$(
-        echo -e $FILES_LIST | \
+    local preview_search_string="\\\e[91m$SEARCH_STRING$reset_text_attributes"
+    local preview_replace_string="\\\e[92m$replace_string$reset_text_attributes"
+    local preview_replace="$preview_search_string$preview_replace_string"
+    local preview_output=$(
+        echo -e $files_list | \
             xargs -l grep "$SEARCH_STRING" | \
-            sed "s/$SEARCH_STRING/\\\e[91m$SEARCH_STRING$reset_text_attributes\\\e[92m$REPLACE_STRING$reset_text_attributes/g"
+            sed "s/$SEARCH_STRING/$preview_replace/g"
     )
-    echo -e "$PREVIEW_OUTPUT"
+
+    if [ -z "$preview_output" ]; then
+        echo "No matches found"
+        return
+    fi
+
+    echo "This is going to be replaced:"
+    echo -e "$preview_output"
+    echo "Are you sure you want to do that? [y/N]"
+    read CONFIRM
+
+    if [[ -z $CONFIRM && $CONFIRM == 'y' ]]; then
+        SED_REGEX="s/$SEARCH_STRING/$REPLACE_STRING/g"
+        echo -e $files_list | xargs -l sed -i "$SED_REGEX"
+        echo "DONE"
+    fi
 }
 
-echo "This is going to be replaced:"
-show_preview
-echo "Are you sure you want to do that? [y/N]"
-read CONFIRM
+MAIN
 
-if [ $CONFIRM == 'y' ]; then
-    SED_REGEX="s/$SEARCH_STRING/$REPLACE_STRING/g"
-    echo -e $FILES_LIST | xargs -l sed -i "$SED_REGEX"
-    echo "DONE"
-fi
