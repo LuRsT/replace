@@ -1,6 +1,6 @@
 # replace
 
-Using `sed` like you;re in some kind of IDE
+Using `sed` like you're in some kind of IDE
 
 Basically you type:
 
