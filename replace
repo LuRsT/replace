@@ -63,9 +63,9 @@ function MAIN {
     echo "Are you sure you want to do that? [y/N]"
     read CONFIRM
 
-    if [[ -z $CONFIRM && $CONFIRM == 'y' ]]; then
+    if [[ $CONFIRM == 'y' ]]; then
         SED_REGEX="s/$SEARCH_STRING/$REPLACE_STRING/g"
-        echo -e $files_list | xargs -l sed -i "$SED_REGEX"
+        echo -e $files_list | xargs -l sed -i ''$SED_REGEX''
         echo "DONE"
     fi
 }
